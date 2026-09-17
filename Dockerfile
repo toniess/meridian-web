@@ -27,7 +27,10 @@ RUN npm run build
 # ---------- запуск ----------
 FROM node:22-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000
+# HOSTNAME=0.0.0.0 обязателен: standalone-сервер берёт адрес из
+# process.env.HOSTNAME, а оркестратор подставляет туда имя пода —
+# Next слушает только его, и health-check с 127.0.0.1 не проходит
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 
 COPY --from=builder /app/public ./public
