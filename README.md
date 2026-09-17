@@ -201,6 +201,40 @@ curl -s https://<название>.containerapps.ru/library | head -c 300
 Если на страницах видна полоска «Демо-режим» — значит `API_BASE` не
 долетел до контейнера: проверьте переменные окружения в ревизии.
 
+### Автодеплой из GitHub
+
+Репозиторий: https://github.com/toniess/meridian-web
+
+Каждый push в `main` запускает два workflow:
+
+- **check** — `npm run typecheck` и `npm run build`;
+- **build & push** — собирает образ под `linux/amd64` и кладёт его в
+  Artifact Registry под двумя тегами: `latest` и `sha-<коммит>`.
+  Container App следит за `latest` и сам создаёт новую ревизию;
+  `sha-…` остаётся в реестре, чтобы было на что откатиться.
+
+Один раз нужно задать настройки репозитория:
+
+```bash
+gh variable set CLOUDRU_REGISTRY      --body '<registry_name>.cr.cloud.ru'
+gh variable set IMAGE_NAME            --body 'glushkov-web'
+gh variable set NEXT_PUBLIC_SITE_URL  --body 'https://glushkov.containerapps.ru'
+gh secret   set CLOUDRU_KEY_ID        --body '<key_id>'
+gh secret   set CLOUDRU_KEY_SECRET    --body '<key_secret>'
+```
+
+То же самое можно сделать руками: **Settings → Secrets and variables →
+Actions**, вкладки Variables и Secrets.
+
+`NEXT_PUBLIC_SITE_URL` передаётся именно как build-arg, а не как
+переменная контейнера: Next подставляет `NEXT_PUBLIC_*` литералом на
+этапе сборки, поэтому в рантайме задавать её поздно. Остальные
+переменные (`API_BASE`, `MERIDIAN_PROJECT_SLUG`, `REVALIDATE_SECONDS`)
+читаются на сервере во время работы — их место в настройках Container App.
+
+В самом Container App нужно один раз выбрать образ с тегом `latest` и
+включить автоматическое обновление ревизии при появлении нового образа.
+
 ### 7. Обновления
 
 Каждая новая версия — новый тег и новая ревизия:
