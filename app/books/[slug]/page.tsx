@@ -78,10 +78,17 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
             )}
           </div>
 
-          {content.kind === 'download' && (
+          {content.kind === 'download' && content.reason === 'format' && (
             <p className="post-excerpt" style={{ marginTop: 18 }}>
               Формат {content.ext.toUpperCase()} не открывается в читалке. Чтобы книгу можно было
               читать на сайте, загрузите её в TXT, Markdown или FB2.
+            </p>
+          )}
+
+          {content.kind === 'download' && content.reason === 'unavailable' && (
+            <p className="post-excerpt" style={{ marginTop: 18 }}>
+              Файл книги не удалось загрузить — хранилище не отдало его сайту. Формат
+              {' '}{content.ext.toUpperCase()}{' '} читалка поддерживает, дело не в нём.
             </p>
           )}
         </div>

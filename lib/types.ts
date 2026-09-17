@@ -32,7 +32,9 @@ export type BookPart = {
 export type BookContent =
   | { kind: 'text'; parts: BookPart[] }
   | { kind: 'audio'; src: string }
-  | { kind: 'download'; src: string; ext: string }
+  // reason: 'format' — формат нечитаемый (pdf, epub, docx);
+  //         'unavailable' — формат читаемый, но файл не скачался
+  | { kind: 'download'; src: string; ext: string; reason: 'format' | 'unavailable' }
   | { kind: 'none' };
 
 export type Project = {

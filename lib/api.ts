@@ -164,22 +164,24 @@ export async function getBookContent(book: Book): Promise<BookContent> {
 
   if (usingMockData) {
     const raw = MOCK_BOOK_FILES[book.slug];
-    if (!raw) return { kind: 'download', src: book.fileUrl, ext: ext || 'pdf' };
+    if (!raw) return { kind: 'download', src: book.fileUrl, ext: ext || 'pdf', reason: 'format' };
     return { kind: 'text', parts: splitIntoParts(parseBook(raw, ext || 'txt')) };
   }
 
   if (!READABLE_EXT.includes(ext)) {
-    return { kind: 'download', src: book.fileUrl, ext: ext || 'файл' };
+    return { kind: 'download', src: book.fileUrl, ext: ext || 'файл', reason: 'format' };
   }
 
   try {
     const res = await fetch(book.fileUrl, { next: { revalidate: FILE_REVALIDATE } });
-    if (!res.ok) return { kind: 'download', src: book.fileUrl, ext };
+    if (!res.ok) return { kind: 'download', src: book.fileUrl, ext, reason: 'unavailable' };
     const raw = await res.text();
     const parts = splitIntoParts(parseBook(raw, ext));
-    return parts.length ? { kind: 'text', parts } : { kind: 'download', src: book.fileUrl, ext };
+    return parts.length
+      ? { kind: 'text', parts }
+      : { kind: 'download', src: book.fileUrl, ext, reason: 'unavailable' };
   } catch {
-    return { kind: 'download', src: book.fileUrl, ext };
+    return { kind: 'download', src: book.fileUrl, ext, reason: 'unavailable' };
   }
 }
 
