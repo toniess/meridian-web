@@ -55,6 +55,8 @@ jobs:
             ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:sha-${{ github.sha }}
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
+            API_BASE=${{ vars.API_BASE }}
+            MERIDIAN_PROJECT_SLUG=${{ vars.MERIDIAN_PROJECT_SLUG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

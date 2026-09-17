@@ -14,6 +14,13 @@ COPY . .
 # задавать этот адрес только переменной окружения контейнера недостаточно
 ARG NEXT_PUBLIC_SITE_URL=""
 ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
+# API_BASE нужен и на сборке: страницы пререндерятся, и без него в образ
+# попадут демо-данные с баннером «Демо-режим». В рантайме он тоже нужен —
+# по нему идёт ревалидация, это переменная окружения контейнера
+ARG API_BASE=""
+ARG MERIDIAN_PROJECT_SLUG=""
+ENV API_BASE=$API_BASE
+ENV MERIDIAN_PROJECT_SLUG=$MERIDIAN_PROJECT_SLUG
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
