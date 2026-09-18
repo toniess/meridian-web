@@ -23,7 +23,7 @@ const FILE_REVALIDATE = Number(process.env.FILE_REVALIDATE_SECONDS ?? 3600);
 
 export const usingMockData = !API_BASE;
 
-/** Какой проект показывается в разделе «Меридиан» */
+/** Проект, на который уводит старый адрес /meridian */
 export const MERIDIAN_SLUG = process.env.MERIDIAN_PROJECT_SLUG ?? 'meridian';
 
 type Paginated<T> = { count: number; next: string | null; previous: string | null; results: T[] };
@@ -202,9 +202,8 @@ export async function getProject(slug: string): Promise<Project | null> {
 }
 
 /**
- * Проект для раздела «Меридиан»: берётся по слагу из MERIDIAN_PROJECT_SLUG,
- * а если такого нет — первый в списке. Так раздел не пустует, даже если
- * слаг в админке назвали иначе.
+ * Проект по слагу из MERIDIAN_PROJECT_SLUG, а если такого нет — первый в
+ * списке. Нужен только для редиректа со старого адреса /meridian.
  */
 export async function getMeridianProject(): Promise<Project | null> {
   const direct = await getProject(MERIDIAN_SLUG);
@@ -235,4 +234,41 @@ export async function neighbourPosts(projectSlug: string, id: number) {
   const posts = await listProjectPosts(projectSlug);
   const i = posts.findIndex((p) => p.id === id);
   return { older: posts[i + 1] ?? null, newer: posts[i - 1] ?? null, all: posts };
+}
+
+export type PostContext = {
+  post: Post;
+  project: Project | null;
+  older: Post | null;
+  newer: Post | null;
+};
+
+/**
+ * Запись вместе с проектом и соседями.
+ *
+ * Проект в API у записи не указан, поэтому ленты проектов перебираются —
+ * их немного, а ответы кешируются. Побочная польза: в ленте лежит полная
+ * запись (текст и вложения), так что она же работает как запасной вариант,
+ * когда /projects/posts/{id}/ отвечает ошибкой. Раньше в этом случае
+ * читатель видел «Такой страницы нет».
+ */
+export async function getPostContext(id: number): Promise<PostContext | null> {
+  const projects = await listProjects();
+
+  for (const project of projects) {
+    const posts = await listProjectPosts(project.slug);
+    const i = posts.findIndex((p) => p.id === id);
+    if (i !== -1) {
+      const fresh = await getPost(id);
+      return {
+        post: fresh ?? posts[i],
+        project,
+        older: posts[i + 1] ?? null,
+        newer: posts[i - 1] ?? null,
+      };
+    }
+  }
+
+  const only = await getPost(id);
+  return only ? { post: only, project: null, older: null, newer: null } : null;
 }
