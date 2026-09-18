@@ -43,7 +43,7 @@ export default async function ReaderPage({
     >
       {usingMockData && (
         <p className="demo-note">
-          Демонстрационный текст. На боевом сайте здесь разбирается файл, загруженный к книге.
+          Это пример текста — так выглядит книга в читалке.
         </p>
       )}
       <article className="page">

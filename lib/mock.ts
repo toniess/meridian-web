@@ -42,7 +42,7 @@ export const MOCK_BOOKS: Book[] = [
     id: 4,
     slug: 'irtysh',
     title: 'Иртыш замерзает в ноябре',
-    description: 'Короткие истории об одном городе и одной реке. Загружена в FB2 — проверка того, что читалка разбирает этот формат.',
+    description: 'Короткие истории об одном городе и одной реке.',
     coverUrl: null,
     fileUrl: 'demo://irtysh.fb2',
     publishedAt: '2025-06-10T00:00:00Z',
@@ -135,7 +135,7 @@ export const MOCK_PROJECTS: Project[] = [
     slug: 'meridian',
     title: 'Меридиан',
     description:
-      'Рабочий дневник проекта: тексты, съёмки, документы и всё, что собирается вдоль одной линии.',
+      'Тексты, съёмки и документы, которые собираются вдоль одной линии — от Омска на север.',
     coverUrl: '/images/globe.jpg',
   },
   {

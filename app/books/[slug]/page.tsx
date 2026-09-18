@@ -74,21 +74,20 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
             )}
 
             {content.kind === 'none' && (
-              <p className="post-excerpt">Файл книги ещё не загружен.</p>
+              <p className="post-excerpt">Книга готовится — читать её пока нельзя.</p>
             )}
           </div>
 
           {content.kind === 'download' && content.reason === 'format' && (
             <p className="post-excerpt" style={{ marginTop: 18 }}>
-              Формат {content.ext.toUpperCase()} не открывается в читалке. Чтобы книгу можно было
-              читать на сайте, загрузите её в TXT, Markdown или FB2.
+              На сайте эта книга не открывается — скачайте файл, он читается любой программой
+              для чтения и на телефоне, и на компьютере.
             </p>
           )}
 
           {content.kind === 'download' && content.reason === 'unavailable' && (
             <p className="post-excerpt" style={{ marginTop: 18 }}>
-              Файл книги не удалось загрузить — хранилище не отдало его сайту. Формат
-              {' '}{content.ext.toUpperCase()}{' '} читалка поддерживает, дело не в нём.
+              Открыть книгу на сайте сейчас не получается. Попробуйте позже или скачайте файл.
             </p>
           )}
         </div>

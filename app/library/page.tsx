@@ -11,9 +11,7 @@ export default async function LibraryPage() {
     <section className="wrap">
       <div className="sec-head">
         <h2>Библиотека</h2>
-        <p>
-          {books.length ? `${plural(books.length, 'книга', 'книги', 'книг')} · читать онлайн или скачать` : ''}
-        </p>
+        <p>{books.length ? plural(books.length, 'книга', 'книги', 'книг') : ''}</p>
       </div>
 
       {books.length ? (
@@ -21,7 +19,7 @@ export default async function LibraryPage() {
           {books.map((b) => <BookCard key={b.slug} book={b} />)}
         </div>
       ) : (
-        <div className="empty">Книги ещё не опубликованы.</div>
+        <div className="empty">Книг пока нет — первые появятся здесь.</div>
       )}
     </section>
   );
