@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: base, priority: 1 },
     { url: `${base}/library`, priority: 0.9 },
-    { url: `${base}/meridian`, priority: 0.9 },
+    { url: `${base}/projects`, priority: 0.9 },
     { url: `${base}/about`, priority: 0.6 },
     ...bookUrls.flat(),
     ...projectUrls.flat(),

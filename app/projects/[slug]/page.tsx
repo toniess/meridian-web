@@ -20,6 +20,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const project = await getProject(slug);
   if (!project) notFound();
 
-  const [posts, projects] = await Promise.all([listProjectPosts(slug), listProjects()]);
-  return <ProjectFeed project={project} posts={posts} others={projects.filter((p) => p.slug !== slug)} />;
+  const posts = await listProjectPosts(slug);
+  return <ProjectFeed project={project} posts={posts} />;
 }

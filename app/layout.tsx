@@ -3,18 +3,18 @@ import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { AudioProvider } from '@/components/AudioPlayer';
-import { usingMockData } from '@/lib/api';
+import { listProjects, usingMockData } from '@/lib/api';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Игорь Глушков — рассказы и проект «Меридиан»',
+    default: 'Игорь Глушков — книги и проекты',
     template: '%s — Игорь Глушков',
   },
   description:
-    'Рассказы и повести Игоря Глушкова: читать онлайн, слушать в озвучке автора, скачать. И рабочий дневник проекта «Меридиан».',
+    'Рассказы и повести Игоря Глушкова. Их можно читать прямо на сайте, слушать в озвучке автора или скачать файлом. Здесь же — записи о проектах, которыми он занимается.',
   openGraph: {
     type: 'website',
     locale: 'ru_RU',
@@ -23,7 +23,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const projects = await listProjects();
+
   return (
     <html lang="ru">
       <head>
@@ -39,11 +41,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {usingMockData && (
             <div className="banner">
               <div className="wrap">
-                Демо-режим: API_BASE не задан, сайт показывает встроенные тестовые данные.
+                Демонстрационный режим: вместо настоящих книг и записей показаны примеры.
               </div>
             </div>
           )}
-          <Header />
+          <Header projects={projects} />
           <main>{children}</main>
           <Footer />
         </AudioProvider>

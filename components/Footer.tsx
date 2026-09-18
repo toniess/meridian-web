@@ -4,11 +4,11 @@ export default function Footer() {
   return (
     <footer>
       <div className="wrap foot">
-        <span>Игорь Михайлович Глушков</span>
+        <Link href="/">Главная</Link>
         <Link href="/library">Библиотека</Link>
-        <Link href="/meridian">Меридиан</Link>
+        <Link href="/projects">Проекты</Link>
         <Link href="/about">Об авторе</Link>
-        <span className="sp">© {new Date().getFullYear()}</span>
+        <span className="sp">© {new Date().getFullYear()} Игорь Михайлович Глушков</span>
       </div>
     </footer>
   );
