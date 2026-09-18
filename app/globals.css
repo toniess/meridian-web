@@ -58,7 +58,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
 ::selection { background: var(--accent); color: var(--accent-ink); }
 
-.wrap { max-width: 1140px; margin: 0 auto; padding: 0 24px; }
+.wrap { max-width: 1140px; margin: 0 auto; padding-inline: 24px; }
 
 h1, h2, h3 {
   font-family: var(--display);
@@ -81,7 +81,9 @@ p { margin: 0 0 1em; }
 }
 .top .wrap { display: flex; align-items: center; gap: 22px; height: 62px; }
 .mark { font-family: var(--display); font-weight: 600; font-size: 1.06rem; letter-spacing: -0.018em; text-decoration: none; white-space: nowrap; }
-.nav { display: flex; gap: 20px; margin-left: auto; font-family: var(--ui); font-size: .95rem; }
+.nav { display: flex; gap: 20px; margin-left: auto; font-family: var(--ui); font-size: .95rem; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { white-space: nowrap; }
 .nav a { text-decoration: none; color: var(--ink2); padding: 4px 0; border-bottom: 1px solid transparent; }
 .nav a:hover { color: var(--ink); }
 .nav a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
@@ -114,10 +116,10 @@ p { margin: 0 0 1em; }
 .btn.ghost:hover { border-color: var(--ink2); opacity: 1; }
 
 /* ------------------------------ секции ------------------------------ */
-section { padding: 74px 0; }
-/* у соседних секций отступы складывались в 148px */
-section + section { padding-top: 0; }
-.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 34px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+section { padding-block: 72px; }
+/* у соседних секций отступы складывались в 144px */
+section + section { padding-block-start: 0; }
+.sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; margin-bottom: 30px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
 .sec-head p { margin: 0; color: var(--ink3); font-family: var(--ui); font-size: .92rem; }
 .sec-head a { font-family: var(--ui); font-size: .92rem; color: var(--ink2); text-decoration: none; white-space: nowrap; border-bottom: 1px solid var(--line2); }
 .sec-head a:hover { color: var(--ink); }
@@ -161,6 +163,8 @@ section + section { padding-top: 0; }
 .annot { font-size: 1.06rem; max-width: 38em; }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 28px 0 10px; }
 .toc { margin-top: 52px; border-top: 1px solid var(--line); padding-top: 6px; }
+/* сразу под .sec-head верхняя линия и отступ дублируют её подчёркивание */
+.toc.flush { margin-top: 0; border-top: none; padding-top: 0; }
 .toc-item { display: flex; align-items: baseline; gap: 16px; padding: 14px 2px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
 .toc-item:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .toc-item .n { font-family: var(--ui); font-size: .8rem; color: var(--ink3); min-width: 22px; }
@@ -218,6 +222,8 @@ section + section { padding-top: 0; }
 /* ------------------------------- лента ------------------------------ */
 .feed { display: grid; gap: 0; }
 .post-row { display: grid; grid-template-columns: 130px 1fr 220px; gap: 28px; padding: 26px 0; border-bottom: 1px solid var(--line); text-decoration: none; align-items: start; }
+/* без даты колонка под неё оставляла пустой отступ слева */
+.post-row[data-dated="false"] { grid-template-columns: 0 1fr 220px; }
 .post-row:hover { background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
 .post-date { font-family: var(--ui); font-size: .82rem; color: var(--ink3); padding-top: 4px; }
 .post-row h3 { margin-bottom: 8px; font-size: 1.32rem; }
@@ -271,29 +277,29 @@ section + section { padding-top: 0; }
 .pmini { color: var(--ink2); padding: 6px 10px; border: 1px solid var(--line2); border-radius: 100px; font-size: .8rem; white-space: nowrap; }
 
 /* ------------------------------ подвал ------------------------------ */
-footer { border-top: 1px solid var(--line); padding: 46px 0 60px; margin-top: 40px; font-family: var(--ui); font-size: .9rem; color: var(--ink2); }
+footer { border-top: 1px solid var(--line); padding: 40px 0 56px; margin-top: 8px; font-family: var(--ui); font-size: .9rem; color: var(--ink2); }
 .foot { display: flex; gap: 26px; flex-wrap: wrap; align-items: center; }
 .foot a { text-decoration: none; border-bottom: 1px solid var(--line2); padding-bottom: 2px; }
 .foot .sp { margin-left: auto; color: var(--ink3); font-size: .82rem; }
 
-.empty { padding: 70px 0; text-align: center; color: var(--ink3); font-family: var(--ui); }
+.empty { padding: 44px 0; color: var(--ink3); font-family: var(--ui); }
 .banner { background: var(--bg2); border-bottom: 1px solid var(--line); font-family: var(--ui); font-size: .82rem; color: var(--ink3); }
 .banner .wrap { padding-top: 9px; padding-bottom: 9px; }
 
 @media (max-width: 880px) {
-  .wrap { padding: 0 18px; }
+  .wrap { padding-inline: 18px; }
   .book-hero { grid-template-columns: 1fr; gap: 30px; }
   .book-hero .cover { max-width: 230px; }
   .about { grid-template-columns: 1fr; gap: 34px; }
   .about-photo { max-width: 330px; }
-  .post-row { grid-template-columns: 1fr; gap: 14px; }
+  .post-row, .post-row[data-dated="false"] { grid-template-columns: 1fr; gap: 14px; }
   .post-thumb { order: -1; aspect-ratio: 16 / 9; }
   .post-date { padding-top: 0; }
   .nav { display: none; }
   .nav[data-open="true"] { display: flex; position: absolute; top: 62px; left: 0; right: 0; background: var(--bg); border-bottom: 1px solid var(--line); flex-direction: column; gap: 0; padding: 8px 18px 18px; margin: 0; }
   .nav[data-open="true"] a { padding: 11px 0; border-bottom: 1px solid var(--line); }
   .burger { display: block; }
-  section { padding: 52px 0; }
+  section { padding-block: 48px; }
   .hero .wrap { padding-top: 70px; padding-bottom: 38px; }
   .player .wrap { height: 60px; gap: 11px; }
   .ptime, .pmini.rate { display: none; }

@@ -6,13 +6,16 @@ import type { Post } from '@/lib/types';
 export default function PostRow({ post }: { post: Post }) {
   const thumb = post.attachments.find((a) => a.type === 'image');
   const thumbSrc = thumb?.fileUrl || thumb?.url || null;
+  const excerpt = excerptFrom(post.body);
+  // у коротких записей текст совпадает с заголовком — повторять его незачем
+  const showExcerpt = excerpt && excerpt.replace(/…$/, '') !== post.title.replace(/…$/, '');
 
   return (
-    <Link className="post-row" href={`/posts/${post.id}`}>
-      <div className="post-date">{post.publishedAt ? rusDate(post.publishedAt) : 'Черновик'}</div>
+    <Link className="post-row" href={`/posts/${post.id}`} data-dated={Boolean(post.publishedAt)}>
+      <div className="post-date">{post.publishedAt ? rusDate(post.publishedAt) : ''}</div>
       <div>
         <h3>{post.title}</h3>
-        <p className="post-excerpt">{excerptFrom(post.body)}</p>
+        {showExcerpt && <p className="post-excerpt">{excerpt}</p>}
         {post.attachments.length > 0 && (
           <span className="kind">
             <i />
