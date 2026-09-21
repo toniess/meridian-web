@@ -94,7 +94,7 @@ export default function ReaderChrome({
       <div className="reader-bar">
         <div className="wrap">
           <Link className="back" href={`/books/${bookSlug}`}>← {bookTitle}</Link>
-          <span className="title">· {current.title}</span>
+          {current.title && <span className="title">· {current.title}</span>}
 
           <div className="reader-tools">
             {parts.length > 1 && (

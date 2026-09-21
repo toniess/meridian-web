@@ -183,15 +183,27 @@ section + section { padding-block-start: 0; }
 
 .reader { padding: 56px 0 130px; position: relative; }
 .reader[data-read-theme="paper"] { background: #E7E4DB; color: #1B1D1A; }
-.reader[data-read-theme="paper"] .page p:first-of-type::first-letter { color: #35503F; }
+.reader[data-read-theme="paper"] .page p:not(.verse):first-of-type::first-letter { color: #35503F; }
 .reader[data-read-theme="sepia"] { background: #F0E4CE; color: #2B2117; }
-.reader[data-read-theme="sepia"] .page p:first-of-type::first-letter { color: #8A5A22; }
+.reader[data-read-theme="sepia"] .page p:not(.verse):first-of-type::first-letter { color: #8A5A22; }
 
 .page { max-width: var(--measure, 34em); margin: 0 auto; font-size: var(--rsize, 19px); line-height: 1.78; }
 .page h2 { margin-bottom: 1.1em; font-size: 1.7rem; }
 .page p { margin: 0 0 1.15em; text-indent: 1.4em; }
 .page p:first-of-type { text-indent: 0; }
-.page p:first-of-type::first-letter { font-family: var(--display); font-size: 2.9em; line-height: .86; float: left; padding: .06em .1em 0 0; color: var(--accent); }
+.page p:not(.verse):first-of-type::first-letter { font-family: var(--display); font-size: 2.9em; line-height: .86; float: left; padding: .06em .1em 0 0; color: var(--accent); }
+
+/* Стихи. Переносы строк расставил автор, поэтому красной строки и буквицы
+   здесь быть не должно: строки идут по левому краю, как в файле. При этом
+   стихотворение целиком стоит по центру колонки — блок сужается до самой
+   длинной строки, и левый край у всех строф получается общий.
+   Строка, не поместившаяся в ширину экрана, переносится с отбивкой —
+   так видно, что это продолжение, а не следующая строка стихотворения. */
+.page-verse h2 { text-align: center; }
+.page .verses { width: fit-content; max-width: 100%; margin: 0 auto; }
+.page p.verse { text-indent: 0; margin: 0 0 1.7em; }
+.page p.verse:last-child { margin-bottom: 0; }
+.page p.verse > span { display: block; padding-left: 1.3em; text-indent: -1.3em; }
 
 .chapter-nav { display: flex; justify-content: space-between; gap: 16px; margin: 64px auto 0; max-width: var(--measure, 34em); font-family: var(--ui); font-size: .92rem; }
 .chapter-nav a { text-decoration: none; color: var(--ink2); border-bottom: 1px solid var(--line2); padding-bottom: 2px; }

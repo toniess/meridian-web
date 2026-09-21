@@ -132,6 +132,55 @@ function parseMarkdown(raw: string): Para[] {
   return out;
 }
 
+/**
+ * Заголовок в обычном txt: короткая одиночная строка без завершающей
+ * пунктуации. Так выглядят и «Глава третья», и просто «Бортмеханик».
+ * Реплики диалога («— Норма пятьдесят») отсекаются по тире в начале.
+ */
+function looksLikeHeading(line: string): boolean {
+  return (
+    line.length < 70 &&
+    /[A-Za-zА-Яа-яЁё]/.test(line) &&
+    !/^[—–-]/.test(line) &&
+    (!/[.!?…,:;»"]$/.test(line) ||
+      /^(глава|часть|рассказ)\b/i.test(line) ||
+      /^[IVXLC]+\.$/.test(line) ||
+      /^\d+\.$/.test(line))
+  );
+}
+
+const nonEmptyLines = (s: string) =>
+  s.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+
+/**
+ * Стихи отличаются от прозы тем, что в них значим сам перенос строки:
+ * склеить строфу в абзац — значит сломать стихотворение. Признак — почти
+ * каждая строка короткая и начинается с заглавной буквы. Проза так не
+ * выглядит даже там, где её жёстко переносят по ширине: её строки длиннее
+ * и продолжают предложение со строчной.
+ */
+function looksLikeVerse(raw: string): boolean {
+  const lines = nonEmptyLines(raw);
+  if (lines.length < 4) return false;
+  const versey = lines.filter((l) => l.length <= 60 && /^[А-ЯЁA-Z—–«"(]/.test(l)).length;
+  return versey / lines.length >= 0.7;
+}
+
+/** Стихотворение: пустая строка отделяет строфу, внутри строфы переносы сохраняются */
+function parseVerse(raw: string): Para[] {
+  const out: Para[] = [];
+  for (const chunk of raw.split(/\r?\n\s*\r?\n/)) {
+    const lines = nonEmptyLines(chunk);
+    if (!lines.length) continue;
+    if (lines.length === 1 && looksLikeHeading(lines[0])) {
+      out.push({ type: 'h', text: lines[0] });
+      continue;
+    }
+    out.push({ type: 'verse', lines });
+  }
+  return out;
+}
+
 /** Обычный txt: заголовками считаем строки вида «Глава 3», «ЧАСТЬ ВТОРАЯ» и капслок */
 function parsePlain(raw: string): Para[] {
   const out: Para[] = [];
@@ -139,19 +188,10 @@ function parsePlain(raw: string): Para[] {
     const block = chunk.trim();
     if (!block) continue;
     const oneLine = !block.includes('\n');
-    // Заголовок в обычном txt: короткая одиночная строка без завершающей
-    // пунктуации. Так выглядят и «Глава третья», и просто «Бортмеханик».
-    // Реплики диалога («— Норма пятьдесят») отсекаются по тире в начале.
-    const looksLikeHeading =
-      oneLine &&
-      block.length < 70 &&
-      /[A-Za-zА-Яа-яЁё]/.test(block) &&
-      !/^[—–-]/.test(block) &&
-      (!/[.!?…,:;»"]$/.test(block) ||
-        /^(глава|часть|рассказ)\b/i.test(block) ||
-        /^[IVXLC]+\.$/.test(block) ||
-        /^\d+\.$/.test(block));
-    out.push({ type: looksLikeHeading ? 'h' : 'p', text: block.replace(/\s*\r?\n\s*/g, ' ') });
+    out.push({
+      type: oneLine && looksLikeHeading(block) ? 'h' : 'p',
+      text: block.replace(/\s*\r?\n\s*/g, ' '),
+    });
   }
   return out;
 }
@@ -160,7 +200,7 @@ export function parseBook(raw: string, ext: string): Para[] {
   if (ext === 'fb2' || ext === 'xml' || /<FictionBook/i.test(raw.slice(0, 500))) return parseFb2(raw);
   if (ext === 'html' || ext === 'htm' || /^\s*<(!doctype|html)/i.test(raw.slice(0, 200))) return parseHtml(raw);
   if (ext === 'md' || ext === 'markdown') return parseMarkdown(raw);
-  return parsePlain(raw);
+  return looksLikeVerse(raw) ? parseVerse(raw) : parsePlain(raw);
 }
 
 /* ------------------------------------------------------------------ */
@@ -168,6 +208,9 @@ export function parseBook(raw: string, ext: string): Para[] {
 /* ------------------------------------------------------------------ */
 
 const TARGET_CHARS = 16000;
+
+const paraLength = (p: Para) =>
+  p.type === 'verse' ? p.lines.reduce((n, l) => n + l.length, 0) : p.text.length;
 
 /**
  * В API у книги нет глав — есть один файл. Чтобы читалка не выдавала
@@ -207,7 +250,7 @@ export function splitIntoParts(paras: Para[]): BookPart[] {
 
   for (const p of paras) {
     current.push(p);
-    size += p.text.length;
+    size += paraLength(p);
     if (size >= TARGET_CHARS) {
       parts.push({ index: parts.length, title: `Часть ${parts.length + 1}`, paragraphs: current });
       current = [];
@@ -217,6 +260,18 @@ export function splitIntoParts(paras: Para[]): BookPart[] {
   if (current.length) {
     parts.push({ index: parts.length, title: `Часть ${parts.length + 1}`, paragraphs: current });
   }
+
+  // Книга уместилась в одну часть: «Часть 1» рядом с единственным текстом
+  // ничего не сообщает. Если файл начинается заголовком — он и есть название
+  // части, а если нет, то названия у неё просто не будет.
+  if (parts.length === 1) {
+    const first = parts[0].paragraphs[0];
+    parts[0] =
+      first && first.type === 'h'
+        ? { index: 0, title: first.text, paragraphs: parts[0].paragraphs.slice(1) }
+        : { ...parts[0], title: '' };
+  }
+
   return parts.length ? parts : [{ index: 0, title: 'Текст', paragraphs: paras }];
 }
 

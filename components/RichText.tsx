@@ -42,13 +42,41 @@ function linkify(text: string, key: string): React.ReactNode[] {
 }
 
 export default function RichText({ paras }: { paras: Para[] }) {
-  return (
-    <>
-      {paras.map((p, i) => {
-        if (p.type === 'h') return <h2 key={i}>{p.text}</h2>;
-        if (p.type === 'quote') return <blockquote key={i}>{linkify(p.text, `q${i}`)}</blockquote>;
-        return <p key={i}>{linkify(p.text, `p${i}`)}</p>;
-      })}
-    </>
-  );
+  const out: React.ReactNode[] = [];
+  let stanzas: React.ReactNode[] = [];
+
+  // Идущие подряд строфы собираются в один блок. Центрировать каждую
+  // по отдельности нельзя: у строф разной ширины разъедется левый край,
+  // а в стихотворении он общий.
+  const flushStanzas = () => {
+    if (!stanzas.length) return;
+    out.push(
+      <div className="verses" key={`v${out.length}`}>
+        {stanzas}
+      </div>,
+    );
+    stanzas = [];
+  };
+
+  paras.forEach((p, i) => {
+    // в строфе перенос строки — часть текста, поэтому строки отдельными узлами
+    if (p.type === 'verse') {
+      stanzas.push(
+        <p className="verse" key={i}>
+          {p.lines.map((line, j) => (
+            <span key={j}>{linkify(line, `v${i}-${j}`)}</span>
+          ))}
+        </p>,
+      );
+      return;
+    }
+
+    flushStanzas();
+    if (p.type === 'h') out.push(<h2 key={i}>{p.text}</h2>);
+    else if (p.type === 'quote') out.push(<blockquote key={i}>{linkify(p.text, `q${i}`)}</blockquote>);
+    else out.push(<p key={i}>{linkify(p.text, `p${i}`)}</p>);
+  });
+  flushStanzas();
+
+  return <>{out}</>;
 }

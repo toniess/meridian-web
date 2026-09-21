@@ -19,7 +19,9 @@ export type Book = {
 export type Para =
   | { type: 'p'; text: string }
   | { type: 'h'; text: string }
-  | { type: 'quote'; text: string };
+  | { type: 'quote'; text: string }
+  // строфа стихотворения: переносы строк здесь значимы и сохраняются
+  | { type: 'verse'; lines: string[] };
 
 /** Книга не делится на главы в API, поэтому части вычисляются из текста */
 export type BookPart = {
