@@ -13,6 +13,50 @@ export function extFromUrl(url: string): string {
 export const AUDIO_EXT = ['mp3', 'm4a', 'm4b', 'ogg', 'oga', 'opus', 'wav', 'aac', 'flac'];
 export const READABLE_EXT = ['txt', 'md', 'markdown', 'fb2', 'html', 'htm', 'xml'];
 
+/* ------------------------------------------------------------------ */
+/* Кодировка файла                                                     */
+/* ------------------------------------------------------------------ */
+
+const tryDecode = (bytes: Uint8Array, label: string): string | null => {
+  try {
+    return new TextDecoder(label, { fatal: true }).decode(bytes);
+  } catch {
+    // неизвестное имя кодировки или байты, которые в неё не укладываются
+    return null;
+  }
+};
+
+/** Кодировка, объявленная внутри самого файла: пролог FB2/XML или <meta charset> */
+function declaredCharset(bytes: Uint8Array): string | null {
+  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 1024));
+  const m =
+    head.match(/<\?xml[^>]*encoding=["']([\w-]+)["']/i) ??
+    head.match(/<meta[^>]+charset=["']?([\w-]+)/i);
+  return m ? m[1] : null;
+}
+
+/**
+ * Тело ответа fetch по спецификации всегда читается как UTF-8, а в библиотеке
+ * лежат старые txt в windows-1251 — от них на странице оставались крокозябры.
+ * Поэтому кодировку определяем сами: BOM, затем строгая проверка на UTF-8
+ * (осмысленный русский текст в другой кодировке её почти никогда не проходит),
+ * затем объявление внутри файла или заголовок ответа. В конце — windows-1251
+ * как самая частая однобайтовая кодировка для русских текстов.
+ */
+export function decodeTextFile(buf: ArrayBuffer, contentType = ''): string {
+  const bytes = new Uint8Array(buf);
+
+  if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder('utf-16le').decode(bytes);
+  if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder('utf-16be').decode(bytes);
+
+  // BOM UTF-8 TextDecoder снимает сам
+  const utf8 = tryDecode(bytes, 'utf-8');
+  if (utf8 !== null) return utf8;
+
+  const label = declaredCharset(bytes) ?? contentType.match(/charset=["']?([\w-]+)/i)?.[1];
+  return (label && tryDecode(bytes, label)) || new TextDecoder('windows-1251').decode(bytes);
+}
+
 const decode = (s: string) =>
   s
     .replace(/&nbsp;/g, ' ')

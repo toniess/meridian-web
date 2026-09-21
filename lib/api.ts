@@ -1,6 +1,6 @@
 import 'server-only';
 import type { Attachment, Book, BookContent, Post, Project } from './types';
-import { AUDIO_EXT, extFromUrl, parseBook, READABLE_EXT, splitIntoParts } from './content';
+import { AUDIO_EXT, decodeTextFile, extFromUrl, parseBook, READABLE_EXT, splitIntoParts } from './content';
 import { MOCK_BOOKS, MOCK_BOOK_FILES, MOCK_POSTS, MOCK_PROJECTS } from './mock';
 
 /**
@@ -175,7 +175,7 @@ export async function getBookContent(book: Book): Promise<BookContent> {
   try {
     const res = await fetch(book.fileUrl, { next: { revalidate: FILE_REVALIDATE } });
     if (!res.ok) return { kind: 'download', src: book.fileUrl, ext, reason: 'unavailable' };
-    const raw = await res.text();
+    const raw = decodeTextFile(await res.arrayBuffer(), res.headers.get('content-type') ?? '');
     const parts = splitIntoParts(parseBook(raw, ext));
     return parts.length
       ? { kind: 'text', parts }
