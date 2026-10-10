@@ -259,9 +259,24 @@ docker push <registry_name>.cr.cloud.ru/glushkov-web:1.0.1
 
 ### Свой домен
 
-Container Apps выдаёт адрес в `*.containerapps.ru`. Для собственного
-домена привяжите его в настройках контейнера и не забудьте поменять
-`NEXT_PUBLIC_SITE_URL` в переменных окружения.
+Сайт живёт на `https://igorglushkov.ru`. Устроено так:
+
+- DNS — в Cloudflare, **без прокси** (серое облако): CDN Cloudflare в
+  России работает с перебоями. `igorglushkov.ru` и `www` смотрят на
+  Evolution API Gateway Cloud.ru, тот проксирует в контейнер.
+- Сертификат — Let's Encrypt на `igorglushkov.ru` и `www.igorglushkov.ru`,
+  импортирован в Certificate Manager. Выпускается через `acme.sh` с
+  DNS-проверкой по токену Cloudflare. **Живёт 90 дней** — новую версию
+  нужно загрузить в Certificate Manager до окончания срока, в поле
+  сертификата — вместе с цепочкой (`fullchain`), иначе часть клиентов
+  его не примет.
+- Редиректы шлюз делать не умеет, их делает сайт (`middleware.ts`):
+  `www` → `https://igorglushkov.ru` с сохранением пути. `http` → `https`
+  включается константой `FORCE_HTTPS`, а заголовок HSTS (в
+  `next.config.mjs`) приучает браузер ходить только по HTTPS.
+
+`NEXT_PUBLIC_SITE_URL` должен совпадать с этим адресом: по нему строятся
+canonical, sitemap и редиректы.
 
 ### Про CORS
 
