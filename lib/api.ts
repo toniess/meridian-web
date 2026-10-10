@@ -42,6 +42,22 @@ async function getJson<T>(url: string, revalidate = REVALIDATE): Promise<T | nul
   }
 }
 
+/**
+ * Одна сущность по адресу. null — только если бекенд прямо ответил 404.
+ * Сбой сети или 5xx — исключение: иначе страница книги показала бы «не
+ * найдено», и ISR закешировал бы эту 404 вместо рабочей страницы. При
+ * исключении Next оставляет в кеше прежнюю версию страницы.
+ */
+async function getEntity<T>(url: string): Promise<T | null> {
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    next: { revalidate: REVALIDATE },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API ${res.status}: ${url}`);
+  return (await res.json()) as T;
+}
+
 /** Проходит по всем страницам пагинации DRF (но не бесконечно) */
 async function getAll<T>(path: string, maxPages = 20): Promise<T[]> {
   const out: T[] = [];
@@ -147,7 +163,7 @@ export async function listBooks(): Promise<Book[]> {
 
 export async function getBook(slug: string): Promise<Book | null> {
   if (usingMockData) return MOCK_BOOKS.find((b) => b.slug === slug) ?? null;
-  const raw = await getJson<RawBook>(`${API_BASE}/library/books/${slug}/`);
+  const raw = await getEntity<RawBook>(`${API_BASE}/library/books/${slug}/`);
   return raw ? mapBook(raw) : null;
 }
 
@@ -197,7 +213,7 @@ export async function listProjects(): Promise<Project[]> {
 
 export async function getProject(slug: string): Promise<Project | null> {
   if (usingMockData) return MOCK_PROJECTS.find((p) => p.slug === slug) ?? null;
-  const raw = await getJson<RawProject>(`${API_BASE}/projects/${slug}/`);
+  const raw = await getEntity<RawProject>(`${API_BASE}/projects/${slug}/`);
   return raw ? mapProject(raw) : null;
 }
 

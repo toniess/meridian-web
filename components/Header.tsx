@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import ThemeToggle from './ThemeToggle';
 
 export type NavLink = { href: string; label: string; match: string[] };
 
@@ -46,6 +47,7 @@ export default function Header({ projects }: { projects: { slug: string; title: 
             );
           })}
         </nav>
+        <ThemeToggle />
       </div>
     </header>
   );

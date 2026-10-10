@@ -208,71 +208,120 @@ export function parseBook(raw: string, ext: string): Para[] {
 /* ------------------------------------------------------------------ */
 
 const TARGET_CHARS = 16000;
+/** Текст короче этого показывается целиком: делить его на части незачем */
+const SPLIT_ABOVE = 24000;
+/** Часть короче этого — обрывок (титульный лист, хвост), а не глава */
+const MIN_PART = 1500;
 
 const paraLength = (p: Para) =>
   p.type === 'verse' ? p.lines.reduce((n, l) => n + l.length, 0) : p.text.length;
 
+const partLength = (paras: Para[]) => paras.reduce((n, p) => n + paraLength(p), 0);
+
 /**
- * В API у книги нет глав — есть один файл. Чтобы читалка не выдавала
- * читателю полотно на сорок экранов, текст режется на части: по
- * заголовкам, если они есть, иначе по объёму.
+ * Весь текст одной частью. Если файл начинается заголовком — он и есть
+ * название части, а остальные заголовки остаются в тексте подзаголовками.
  */
-export function splitIntoParts(paras: Para[]): BookPart[] {
-  const headings = paras.filter((p) => p.type === 'h').length;
+function wholeText(paras: Para[]): BookPart {
+  const first = paras[0];
+  return first && first.type === 'h'
+    ? { index: 0, title: first.text, paragraphs: paras.slice(1) }
+    : { index: 0, title: '', paragraphs: paras };
+}
 
-  if (headings >= 2) {
-    const parts: BookPart[] = [];
-    let current: Para[] = [];
-    let title = 'Начало';
+/** title: null — текст до первого заголовка, своего названия у него нет */
+type Section = { title: string | null; paragraphs: Para[] };
 
-    const push = () => {
-      if (current.length) {
-        parts.push({ index: parts.length, title, paragraphs: current });
-      }
-    };
-
-    for (const p of paras) {
-      if (p.type === 'h') {
-        push();
-        current = [];
-        title = p.text;
-      } else {
-        current.push(p);
-      }
+function byHeadings(paras: Para[]): Section[] {
+  const out: Section[] = [];
+  let current: Section = { title: null, paragraphs: [] };
+  for (const p of paras) {
+    if (p.type === 'h') {
+      if (current.paragraphs.length) out.push(current);
+      current = { title: p.text, paragraphs: [] };
+    } else {
+      current.paragraphs.push(p);
     }
-    push();
-    return parts.length ? parts : [{ index: 0, title: 'Текст', paragraphs: paras }];
+  }
+  if (current.paragraphs.length) out.push(current);
+  return out;
+}
+
+/**
+ * Обрывок приклеивается к следующей части, а последний — к предыдущей.
+ * Заголовок той части, что оказалась внутри, остаётся в тексте подзаголовком.
+ */
+function mergeScraps(sections: Section[]): Section[] {
+  const out: Section[] = [];
+  let carry: Section | null = null;
+
+  for (const s of sections) {
+    const cur: Section = carry
+      ? {
+          title: carry.title ?? s.title,
+          paragraphs: [
+            ...carry.paragraphs,
+            ...(carry.title !== null && s.title !== null ? [{ type: 'h' as const, text: s.title }] : []),
+            ...s.paragraphs,
+          ],
+        }
+      : s;
+    carry = null;
+    if (partLength(cur.paragraphs) < MIN_PART) carry = cur;
+    else out.push(cur);
   }
 
-  const parts: BookPart[] = [];
+  if (carry) {
+    const last = out.pop();
+    if (!last) return [carry];
+    out.push({
+      title: last.title,
+      paragraphs: [
+        ...last.paragraphs,
+        ...(carry.title !== null ? [{ type: 'h' as const, text: carry.title }] : []),
+        ...carry.paragraphs,
+      ],
+    });
+  }
+  return out;
+}
+
+function bySize(paras: Para[]): Section[] {
+  const out: Section[] = [];
   let current: Para[] = [];
   let size = 0;
-
   for (const p of paras) {
     current.push(p);
     size += paraLength(p);
     if (size >= TARGET_CHARS) {
-      parts.push({ index: parts.length, title: `Часть ${parts.length + 1}`, paragraphs: current });
+      out.push({ title: null, paragraphs: current });
       current = [];
       size = 0;
     }
   }
-  if (current.length) {
-    parts.push({ index: parts.length, title: `Часть ${parts.length + 1}`, paragraphs: current });
-  }
+  if (current.length) out.push({ title: null, paragraphs: current });
+  return out;
+}
 
-  // Книга уместилась в одну часть: «Часть 1» рядом с единственным текстом
-  // ничего не сообщает. Если файл начинается заголовком — он и есть название
-  // части, а если нет, то названия у неё просто не будет.
-  if (parts.length === 1) {
-    const first = parts[0].paragraphs[0];
-    parts[0] =
-      first && first.type === 'h'
-        ? { index: 0, title: first.text, paragraphs: parts[0].paragraphs.slice(1) }
-        : { ...parts[0], title: '' };
-  }
+/**
+ * В API у книги нет глав — есть один файл. Короткий текст (а таких в
+ * библиотеке большинство) показывается целиком. Длинный, чтобы не выдавать
+ * читателю полотно на сорок экранов, режется на части: по заголовкам, если
+ * они есть, иначе по объёму. Короткие строки титульного листа тоже похожи на
+ * заголовки, поэтому обрывки приклеиваются к соседним частям.
+ */
+export function splitIntoParts(paras: Para[]): BookPart[] {
+  if (partLength(paras) <= SPLIT_ABOVE) return [wholeText(paras)];
 
-  return parts.length ? parts : [{ index: 0, title: 'Текст', paragraphs: paras }];
+  const headed = paras.filter((p) => p.type === 'h').length >= 2;
+  const sections = mergeScraps(headed ? byHeadings(paras) : bySize(paras));
+  if (sections.length < 2) return [wholeText(paras)];
+
+  return sections.map((s, i) => ({
+    index: i,
+    title: s.title ?? (headed ? 'Начало' : `Часть ${i + 1}`),
+    paragraphs: s.paragraphs,
+  }));
 }
 
 /* ------------------------------------------------------------------ */

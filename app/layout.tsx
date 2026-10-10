@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import NavProgress from '@/components/NavProgress';
+import { THEME_SCRIPT } from '@/lib/theme';
 import { AudioProvider } from '@/components/AudioPlayer';
 import { listProjects, usingMockData } from '@/lib/api';
 
@@ -27,8 +30,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const projects = await listProjects();
 
   return (
-    <html lang="ru">
+    // data-theme ставит скрипт до гидратации — React не должен на это ругаться
+    <html lang="ru" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
@@ -37,6 +42,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
       </head>
       <body>
+        {/* useSearchParams внутри требует Suspense, иначе страницы перестанут быть статическими */}
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
         <AudioProvider>
           {usingMockData && (
             <div className="banner">

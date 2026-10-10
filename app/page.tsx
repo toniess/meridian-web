@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import BookCard from '@/components/BookCard';
+import HomeShelf, { HeroRead } from '@/components/HomeShelf';
 import PostRow from '@/components/PostRow';
 import { listBooks, listProjectPosts, listProjects } from '@/lib/api';
 
@@ -13,8 +14,6 @@ export default async function HomePage() {
   );
   const withPosts = feeds.filter((f) => f.posts.length > 0);
   const withoutPosts = feeds.filter((f) => f.posts.length === 0).map((f) => f.project);
-
-  const lead = books[0];
 
   return (
     <>
@@ -34,7 +33,7 @@ export default async function HomePage() {
               смотреть фотографии и то, чем он занят в настоящее время.
             </p>
             <div className="hero-actions">
-              {lead && <Link className="btn" href={`/books/${lead.slug}`}>Читать «{lead.title}»</Link>}
+              {books.length > 0 && <HeroRead books={books.map(({ slug, title }) => ({ slug, title }))} />}
               {projects.length > 0 && (
                 <Link className="btn ghost" href="/projects">
                   {projects.length === 1 ? projects[0].title : 'Проекты'}
@@ -51,9 +50,8 @@ export default async function HomePage() {
           <Link href="/library">Все книги</Link>
         </div>
         {books.length ? (
-          <div className="grid-books">
-            {books.slice(0, 4).map((b) => <BookCard key={b.slug} book={b} />)}
-          </div>
+          // прочитанные на главной не показываем — какие скрыть, решает браузер
+          <HomeShelf books={books.map((b) => ({ slug: b.slug, node: <BookCard book={b} /> }))} />
         ) : (
           <div className="empty">Книг пока нет — первые появятся здесь.</div>
         )}

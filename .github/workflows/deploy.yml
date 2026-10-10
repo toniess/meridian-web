@@ -8,6 +8,12 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# Два прогона подряд не должны чистить реестр одновременно:
+# второй мог бы удалить образ, который только что залил первый
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
 jobs:
   image:
     runs-on: ubuntu-latest
@@ -42,7 +48,20 @@ jobs:
           username: ${{ secrets.CLOUDRU_KEY_ID }}
           password: ${{ secrets.CLOUDRU_KEY_SECRET }}
 
+      # crane берёт логин из ~/.docker/config.json, который записал login-action
+      - uses: imjasonh/setup-crane@v0.4
+
+      # Образ под latest до публикации — это предыдущая версия,
+      # её оставляем для отката. При первом запуске latest ещё нет.
+      - name: Запомнить предыдущий образ
+        id: prev
+        run: |
+          digest=$(crane digest "${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest" 2>/dev/null || true)
+          echo "digest=$digest" >> $GITHUB_OUTPUT
+          echo "Предыдущий образ: ${digest:-нет}"
+
       - name: Сборка и публикация
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -59,6 +78,29 @@ jobs:
             MERIDIAN_PROJECT_SLUG=${{ vars.MERIDIAN_PROJECT_SLUG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # В реестре остаются только текущий и предыдущий образ.
+      # Удаляем по digest, поэтому вместе с образом уходят все его теги.
+      # Ошибка очистки не валит деплой: образ к этому моменту уже опубликован.
+      - name: Удаление старых образов
+        continue-on-error: true
+        env:
+          REPO: ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}
+          CURRENT: ${{ steps.build.outputs.digest }}
+          PREVIOUS: ${{ steps.prev.outputs.digest }}
+        run: |
+          [ -n "$CURRENT" ] || { echo "::error::Не известен digest нового образа"; exit 1; }
+          stale=""
+          for tag in $(crane ls "$REPO"); do
+            d=$(crane digest "$REPO:$tag")
+            [ "$d" = "$CURRENT" ] || [ "$d" = "$PREVIOUS" ] && continue
+            echo "К удалению: $tag ($d)"
+            stale="$stale $d"
+          done
+          for d in $(echo $stale | tr ' ' '\n' | sort -u); do
+            crane delete "$REPO@$d"
+          done
+          echo "Удалено образов: $(echo $stale | tr ' ' '\n' | sort -u | grep -c . || true)" >> $GITHUB_STEP_SUMMARY
 
       - name: Итог
         run: echo "Опубликовано ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest и :sha-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

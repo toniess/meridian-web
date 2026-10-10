@@ -1,21 +1,13 @@
 import type { MetadataRoute } from 'next';
-import { getBookContent, listBooks, listProjectPosts, listProjects } from '@/lib/api';
+import { listBooks, listProjectPosts, listProjects } from '@/lib/api';
 
 const base = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com').replace(/\/$/, '');
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [books, projects] = await Promise.all([listBooks(), listProjects()]);
 
-  const bookUrls = await Promise.all(
-    books.map(async (b) => {
-      const content = await getBookContent(b);
-      const parts = content.kind === 'text' ? content.parts : [];
-      return [
-        { url: `${base}/books/${b.slug}`, priority: 0.8 },
-        ...parts.map((p) => ({ url: `${base}/read/${b.slug}/${p.index}`, priority: 0.5 })),
-      ];
-    }),
-  );
+  // текст книги — на её странице, отдельных адресов у частей нет
+  const bookUrls = books.map((b) => ({ url: `${base}/books/${b.slug}`, priority: 0.8 }));
 
   const projectUrls = await Promise.all(
     projects.map(async (pr) => {
@@ -36,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/library`, priority: 0.9 },
     { url: `${base}/projects`, priority: 0.9 },
     { url: `${base}/about`, priority: 0.6 },
-    ...bookUrls.flat(),
+    ...bookUrls,
     ...projectUrls.flat(),
   ];
 }
