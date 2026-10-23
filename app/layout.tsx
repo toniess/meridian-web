@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import { Suspense } from 'react';
 import './globals.css';
 import Header from '@/components/Header';
@@ -7,6 +8,7 @@ import NavProgress from '@/components/NavProgress';
 import { THEME_SCRIPT } from '@/lib/theme';
 import { AudioProvider } from '@/components/AudioPlayer';
 import { listProjects, usingMockData } from '@/lib/api';
+import { UMAMI_SRC, UMAMI_WEBSITE_ID } from '@/lib/analytics';
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
 
@@ -58,6 +60,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <main>{children}</main>
           <Footer />
         </AudioProvider>
+        {/* data-domains: считаем только боевой адрес — localhost и адрес
+            контейнера в статистику не попадают */}
+        <Script
+          src={UMAMI_SRC}
+          data-website-id={UMAMI_WEBSITE_ID}
+          data-domains={new URL(siteUrl).hostname}
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

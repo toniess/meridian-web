@@ -60,12 +60,28 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
                       subtitle="Аудиокнига"
                       src={content.src}
                     />
-                    <a className="btn ghost" href={content.src} download>Скачать</a>
+                    <a
+                      className="btn ghost"
+                      href={content.src}
+                      download
+                      data-umami-event="Скачивание"
+                      data-umami-event-book={book.title}
+                      data-umami-event-format="аудио"
+                    >
+                      Скачать
+                    </a>
                   </>
                 )}
 
                 {content.kind === 'download' && (
-                  <a className="btn" href={content.src} download>
+                  <a
+                    className="btn"
+                    href={content.src}
+                    download
+                    data-umami-event="Скачивание"
+                    data-umami-event-book={book.title}
+                    data-umami-event-format={content.ext}
+                  >
                     Скачать {content.ext.toUpperCase()}
                   </a>
                 )}

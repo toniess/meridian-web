@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { track as trackEvent } from '@/lib/analytics';
 
 /**
  * Сквозной плеер озвучек. Живёт в layout, поэтому переживает переходы
@@ -46,6 +47,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setTime(0);
     setDur(t.duration ?? 0);
     setPlaying(true);
+    trackEvent('Прослушивание', { title: t.title, kind: t.subtitle });
   }, []);
 
   // Реальное воспроизведение

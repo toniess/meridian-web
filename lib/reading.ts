@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { track } from './analytics';
 
 /**
  * Что читатель уже прочитал. Хранится в браузере (localStorage), как и
@@ -63,6 +64,7 @@ export function readingOf(slug: string): ReadState | undefined {
 
 export function updateReading(slug: string, patch: Partial<ReadState> | null): ReadState | undefined {
   const all = { ...snapshot() };
+  const wasDone = all[slug]?.done ?? false;
   if (patch === null) delete all[slug];
   else {
     const prev: Partial<ReadState> = all[slug] ?? {};
@@ -74,6 +76,8 @@ export function updateReading(slug: string, patch: Partial<ReadState> | null): R
     return undefined; // приватный режим — просто не запоминаем
   }
   window.dispatchEvent(new Event(EVENT));
+  // и автоматическая отметка, и ручная «Отметить прочитанной»
+  if (!wasDone && all[slug]?.done) track('Дочитал', { book: slug });
   return all[slug];
 }
 

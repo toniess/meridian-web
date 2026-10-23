@@ -13,13 +13,15 @@ const isDev = process.env.NODE_ENV !== 'production';
 const csp = [
   "default-src 'self'",
   // next dev использует eval для hot reload
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
+  // cloud.umami.is — трекер посещаемости, см. lib/analytics.ts
+  `script-src 'self' 'unsafe-inline' https://cloud.umami.is${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   // картинки и аудио к постам бекенд может отдавать с любого хоста
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
-  "connect-src 'self'",
+  // сюда трекер Umami отправляет просмотры и события
+  "connect-src 'self' https://gateway.umami.is",
   // видео в постах — см. videoEmbed в lib/content.ts
   'frame-src https://www.youtube-nocookie.com https://rutube.ru https://vk.com https://dzen.ru https://zen.yandex.ru',
   "object-src 'none'",
