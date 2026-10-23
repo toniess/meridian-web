@@ -136,7 +136,7 @@ export const MOCK_PROJECTS: Project[] = [
     title: 'Меридиан',
     description:
       'Тексты, съёмки и документы, которые собираются вдоль одной линии — от Омска на север.',
-    coverUrl: '/images/globe.jpg',
+    coverUrl: '/images/globe.webp',
   },
   {
     id: 2,
@@ -161,7 +161,7 @@ export const MOCK_POSTS: Record<string, Post[]> = {
 
 Первый материал я собрал в 2019 году и три года не знал, что с ним делать. Теперь знаю: он будет выходить здесь, по частям, без расписания.`,
       attachments: [
-        { id: 1, type: 'image', fileUrl: '/images/globe.jpg', url: '', caption: 'Омск, площадь у гостиницы. Осень 2021 года.', order: 1 },
+        { id: 1, type: 'image', fileUrl: '/images/globe.webp', url: '', caption: 'Омск, площадь у гостиницы. Осень 2021 года.', order: 1 },
       ],
     },
     {
@@ -196,7 +196,7 @@ export const MOCK_POSTS: Record<string, Post[]> = {
 
 Из десяти разговоров восемь закончились ничем, один — вежливым отказом, а десятый идёт до сих пор.`,
       attachments: [
-        { id: 6, type: 'image', fileUrl: '/images/cannes.jpg', url: '', caption: 'Круазетт. Разговор, после которого проект получил первое внешнее внимание.', order: 1 },
+        { id: 6, type: 'image', fileUrl: '/images/cannes.webp', url: '', caption: 'Круазетт. Разговор, после которого проект получил первое внешнее внимание.', order: 1 },
       ],
     },
   ],

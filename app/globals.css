@@ -462,6 +462,7 @@ section:has(> .book-hero) { padding-bottom: 40px; }
 /* ----------------------------- об авторе ---------------------------- */
 .about { display: grid; grid-template-columns: 1fr 380px; gap: 60px; align-items: start; }
 .about-photo { border-radius: var(--radius); overflow: hidden; }
+.about-photo img { width: 100%; height: auto; }
 .facts { border-top: 1px solid var(--line); margin: 34px 0 0; font-family: var(--ui); font-size: .95rem; }
 .facts > div { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .facts dt { color: var(--ink3); margin: 0; }

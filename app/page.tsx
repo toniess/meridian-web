@@ -20,7 +20,7 @@ export default async function HomePage() {
       <div className="hero">
         <div className="hero-img">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/winter.jpg" alt="Игорь Глушков на набережной Иртыша" />
+          <img src="/images/winter.webp" alt="Игорь Глушков на набережной Иртыша" />
         </div>
         <div className="hero-scrim" />
         <div className="hero-scrim-v" />
