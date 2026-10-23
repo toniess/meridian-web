@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import type { Attachment, Book, BookContent, Post, Project } from './types';
 import { AUDIO_EXT, decodeTextFile, extFromUrl, parseBook, READABLE_EXT, splitIntoParts } from './content';
 import { MOCK_BOOKS, MOCK_BOOK_FILES, MOCK_POSTS, MOCK_PROJECTS } from './mock';
@@ -58,17 +59,27 @@ async function getEntity<T>(url: string): Promise<T | null> {
   return (await res.json()) as T;
 }
 
-/** Проходит по всем страницам пагинации DRF (но не бесконечно) */
+/**
+ * Все страницы пагинации DRF (но не бесконечно). Первая страница сообщает
+ * count и размер страницы — остальные запрашиваются разом, а не по ссылке
+ * next одна за другой: бекенд отдаёт страницу ленты больше секунды.
+ */
 async function getAll<T>(path: string, maxPages = 20): Promise<T[]> {
-  const out: T[] = [];
-  let url: string | null = `${API_BASE}${path}`;
+  const first = await getJson<Paginated<T>>(`${API_BASE}${path}`);
+  if (!first) return [];
 
-  for (let i = 0; i < maxPages && url; i++) {
-    const page: Paginated<T> | null = await getJson<Paginated<T>>(url);
-    if (!page) break;
-    out.push(...(page.results ?? []));
-    url = page.next ? absolute(page.next) : null;
-  }
+  const out = [...(first.results ?? [])];
+  if (!first.next || !out.length) return out;
+
+  const total = Math.min(Math.ceil(first.count / out.length), maxPages);
+  const rest = await Promise.all(
+    Array.from({ length: total - 1 }, (_, i) => {
+      const url = new URL(absolute(first.next!));
+      url.searchParams.set('page', String(i + 2));
+      return getJson<Paginated<T>>(url.toString());
+    }),
+  );
+  for (const page of rest) out.push(...(page?.results ?? []));
   return out;
 }
 
@@ -268,14 +279,18 @@ export type PostContext = {
  * когда /projects/posts/{id}/ отвечает ошибкой. Раньше в этом случае
  * читатель видел «Такой страницы нет».
  */
-export async function getPostContext(id: number): Promise<PostContext | null> {
-  const projects = await listProjects();
+export const getPostContext = cache(async (id: number): Promise<PostContext | null> => {
+  // всё независимое — параллельно: запись, список проектов и все их ленты
+  const [fresh, feeds] = await Promise.all([
+    getPost(id),
+    listProjects().then((projects) =>
+      Promise.all(projects.map(async (project) => ({ project, posts: await listProjectPosts(project.slug) }))),
+    ),
+  ]);
 
-  for (const project of projects) {
-    const posts = await listProjectPosts(project.slug);
+  for (const { project, posts } of feeds) {
     const i = posts.findIndex((p) => p.id === id);
     if (i !== -1) {
-      const fresh = await getPost(id);
       return {
         post: fresh ?? posts[i],
         project,
@@ -285,6 +300,5 @@ export async function getPostContext(id: number): Promise<PostContext | null> {
     }
   }
 
-  const only = await getPost(id);
-  return only ? { post: only, project: null, older: null, newer: null } : null;
-}
+  return fresh ? { post: fresh, project: null, older: null, newer: null } : null;
+});
