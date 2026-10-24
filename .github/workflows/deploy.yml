@@ -90,17 +90,24 @@ jobs:
           PREVIOUS: ${{ steps.prev.outputs.digest }}
         run: |
           [ -n "$CURRENT" ] || { echo "::error::Не известен digest нового образа"; exit 1; }
+          # реестр не ответил — это ошибка, а не «удалять нечего»
+          tags=$(crane ls "$REPO") || { echo "::error::Реестр не отдал список тегов"; exit 1; }
+          echo "Тегов в реестре: $(echo "$tags" | grep -c .)"
           stale=""
-          for tag in $(crane ls "$REPO"); do
+          for tag in $tags; do
             d=$(crane digest "$REPO:$tag")
-            [ "$d" = "$CURRENT" ] || [ "$d" = "$PREVIOUS" ] && continue
+            if [ "$d" = "$CURRENT" ] || [ "$d" = "$PREVIOUS" ]; then
+              echo "Оставляем: $tag"
+              continue
+            fi
             echo "К удалению: $tag ($d)"
             stale="$stale $d"
           done
-          for d in $(echo $stale | tr ' ' '\n' | sort -u); do
+          stale=$(echo $stale | tr ' ' '\n' | sort -u | grep . || true)
+          for d in $stale; do
             crane delete "$REPO@$d"
           done
-          echo "Удалено образов: $(echo $stale | tr ' ' '\n' | sort -u | grep -c . || true)" >> $GITHUB_STEP_SUMMARY
+          echo "Удалено образов: $(echo "$stale" | grep -c . || true)" | tee -a $GITHUB_STEP_SUMMARY
 
       - name: Итог
         run: echo "Опубликовано ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest и :sha-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
