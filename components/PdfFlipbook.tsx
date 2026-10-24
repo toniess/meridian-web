@@ -19,6 +19,8 @@ import { track } from '@/lib/analytics';
 type Props = {
   /** Адрес PDF на нашем домене, см. app/files/[kind]/[name]/route.ts */
   src: string;
+  /** Прямая ссылка на файл в хранилище: скачивать целиком лучше мимо сервера сайта */
+  downloadHref: string;
   title: string;
   backHref: string;
   /** Ключ для запоминания страницы, например book:slug */
@@ -48,7 +50,7 @@ function startPage(key: string): number {
   }
 }
 
-export default function PdfFlipbook({ src, title, backHref, storageKey }: Props) {
+export default function PdfFlipbook({ src, downloadHref, title, backHref, storageKey }: Props) {
   const shellRef = useRef<HTMLDivElement>(null);
   const bookRef = useRef<HTMLDivElement>(null);
   const flipRef = useRef<PageFlip | null>(null);
@@ -117,12 +119,14 @@ export default function PdfFlipbook({ src, title, backHref, storageKey }: Props)
 
     const renderAround = (current: number) => {
       for (let i = current - 1; i <= current + AHEAD; i++) void render(i);
-      // далёкие страницы отпускаем: пустой холст почти не занимает память
+      // далёкие страницы отпускаем: и холст, и декодированные картинки
+      // страницы внутри pdf.js — у скана это десятки мегабайт на страницу
       drawnAt.forEach((_, i) => {
         if (Math.abs(i - current) > KEEP) {
           tasks.get(i)?.cancel();
           canvases[i].width = canvases[i].height = 0;
           drawnAt.delete(i);
+          void doc?.getPage(i + 1).then((p) => p.cleanup());
         }
       });
     };
@@ -141,10 +145,17 @@ export default function PdfFlipbook({ src, title, backHref, storageKey }: Props)
           standardFontDataUrl: `${PDFJS}standard_fonts/`,
           wasmUrl: `${PDFJS}wasm/`,
           iccUrl: `${PDFJS}iccs/`,
+          // только куски, нужные открытым страницам. По умолчанию pdf.js
+          // докачивает файл целиком: для скана на 200 МБ это 200 МБ на каждое
+          // открытие, в том числе с телефона
           rangeChunkSize: 256 * 1024,
+          disableAutoFetch: true,
+          disableStream: true,
         }));
         task.onProgress = ({ loaded, total }: { loaded: number; total: number }) => {
-          if (total && !cancelled) setStatus({ kind: 'loading', progress: loaded / total });
+          // при загрузке по частям прогресс приходит и после открытия — на каждую
+          // догруженную страницу; полоса нужна только до первой
+          if (total && !cancelled && !doc) setStatus({ kind: 'loading', progress: loaded / total });
         };
         doc = await task.promise;
         if (cancelled) return;
@@ -286,7 +297,7 @@ export default function PdfFlipbook({ src, title, backHref, storageKey }: Props)
         {status.kind === 'error' && (
           <div className="flip-status">
             <p>Открыть книгу не получилось. Попробуйте обновить страницу или скачайте файл.</p>
-            <a className="btn" href={src} download>Скачать PDF</a>
+            <a className="btn" href={downloadHref} download>Скачать PDF</a>
           </div>
         )}
       </div>
@@ -302,7 +313,7 @@ export default function PdfFlipbook({ src, title, backHref, storageKey }: Props)
           <button className="pmini" onClick={toggleFullscreen} aria-label={fullscreen ? 'Выйти из полноэкранного режима' : 'На весь экран'}>
             {fullscreen ? '⤡' : '⤢'}
           </button>
-          <a className="pmini" href={src} download aria-label="Скачать PDF">↓</a>
+          <a className="pmini" href={downloadHref} download aria-label="Скачать PDF">↓</a>
         </div>
       </div>
     </div>

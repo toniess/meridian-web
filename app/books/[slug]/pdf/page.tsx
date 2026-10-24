@@ -16,6 +16,7 @@ export default async function BookPdfPage({ params }: { params: Promise<{ slug: 
 
   return (
     <PdfFlipbook
+      downloadHref={book.fileUrl}
       src={`/files/book/${slug}.pdf`}
       title={book.title}
       backHref={`/books/${slug}`}

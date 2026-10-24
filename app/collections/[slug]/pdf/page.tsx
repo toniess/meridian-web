@@ -17,6 +17,7 @@ export default async function CollectionPdfPage({ params }: { params: Promise<{ 
 
   return (
     <PdfFlipbook
+      downloadHref={file}
       src={`/files/collection/${slug}.pdf`}
       title={found.collection.title}
       backHref={`/collections/${slug}`}
