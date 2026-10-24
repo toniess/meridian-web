@@ -1,17 +1,20 @@
 import { COVER_AUTHOR, coverStyle, hash, pick, rng, titleSize } from '@/lib/cover';
 import type { Book } from '@/lib/types';
 
+/** Обложка нужна и книге, и сборнику — у обоих есть slug, название и картинка */
+type Subject = Pick<Book, 'slug' | 'title' | 'coverUrl'>;
+
 /**
  * Обложка книги. Если картинки нет — рисуется одна из обложек серии
  * (стиль выбирается по slug, см. lib/cover.ts): так книга без
  * загруженной обложки выглядит решением, а не пропуском.
  */
-export default function Cover({ book }: { book: Book }) {
+export default function Cover({ book }: { book: Subject }) {
   if (book.coverUrl) {
     return (
       <div className="cover cover-img">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={book.coverUrl} alt={`Обложка книги «${book.title}»`} />
+        <img src={book.coverUrl} alt={`Обложка: «${book.title}»`} />
       </div>
     );
   }
@@ -24,7 +27,7 @@ export default function Cover({ book }: { book: Book }) {
 }
 
 /** Генеративный узор: волны реки, круги, штриховка или сетка точек */
-function PatternCover({ book }: { book: Book }) {
+function PatternCover({ book }: { book: Subject }) {
   const r = rng(book.slug);
   const bg = pick(r, ['#1E3442', '#2A3340', '#2F3A33', '#3A2F3D', '#3B3226', '#203C44']);
   const kind = pick(r, ['waves', 'rings', 'hatch', 'dots'] as const);
@@ -67,7 +70,7 @@ function PatternCover({ book }: { book: Book }) {
 }
 
 /** Крупная буквица: первая буква названия на всю обложку, обрезанная краем */
-function LetterCover({ book }: { book: Book }) {
+function LetterCover({ book }: { book: Subject }) {
   const r = rng(book.slug);
   const [bg, fg] = pick(r, [
     ['#C4512F', '#F3E3D3'],
@@ -90,7 +93,7 @@ function LetterCover({ book }: { book: Book }) {
 }
 
 /** Тканевый переплёт с золотым тиснением и рамкой */
-function ClothCover({ book }: { book: Book }) {
+function ClothCover({ book }: { book: Subject }) {
   const r = rng(book.slug);
   const bg = pick(r, ['#2C3E50', '#4A2C2A', '#2F4A3A', '#3D3350', '#1F3A44', '#4A3B24']);
   const id = `cloth-${hash(book.slug)}`;

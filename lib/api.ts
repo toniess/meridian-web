@@ -1,8 +1,8 @@
 import 'server-only';
 import { cache } from 'react';
-import type { Attachment, Book, BookContent, Post, Project } from './types';
+import type { Attachment, Book, BookContent, Collection, Found, Post, PostHit, Project } from './types';
 import { AUDIO_EXT, decodeTextFile, extFromUrl, parseBook, READABLE_EXT, splitIntoParts } from './content';
-import { MOCK_BOOKS, MOCK_BOOK_FILES, MOCK_POSTS, MOCK_PROJECTS } from './mock';
+import { MOCK_BOOKS, MOCK_BOOK_FILES, MOCK_COLLECTIONS, MOCK_POSTS, MOCK_PROJECTS } from './mock';
 
 /**
  * Клиент Meridian API 1.0.0.
@@ -10,10 +10,14 @@ import { MOCK_BOOKS, MOCK_BOOK_FILES, MOCK_POSTS, MOCK_PROJECTS } from './mock';
  * Эндпоинты:
  *   GET /api/library/books/                    → PaginatedBookList
  *   GET /api/library/books/{slug}/             → Book
+ *   GET /api/library/collections/              → PaginatedCollectionList
+ *   GET /api/library/collections/{slug}/       → CollectionDetail (со списком книг)
+ *   GET /api/library/search/?q=                → { books, collections } с фрагментами
  *   GET /api/projects/                         → PaginatedProjectList
  *   GET /api/projects/{slug}/                  → Project
  *   GET /api/projects/{project_slug}/posts/    → PaginatedPostList
  *   GET /api/projects/posts/{id}/              → Post
+ *   GET /api/projects/search/?q=               → найденные записи с фрагментами
  *
  * Пока API_BASE пуст, всё работает на демо-данных из lib/mock.ts.
  */
@@ -107,6 +111,14 @@ type RawBook = {
   id: number; title: string; slug: string;
   description?: string; cover?: string | null; file?: string | null;
   published_at?: string | null;
+  // нет у бекенда без сборников
+  collection?: { slug: string; title: string } | null;
+};
+
+type RawCollection = {
+  id: number; title: string; slug: string;
+  description?: string; cover?: string | null; file?: string | null;
+  published_at?: string | null; books_count?: number;
 };
 
 type RawProject = {
@@ -132,6 +144,18 @@ const mapBook = (r: RawBook): Book => ({
   coverUrl: r.cover ?? null,
   fileUrl: r.file ?? null,
   publishedAt: r.published_at ?? null,
+  collection: r.collection ? { slug: r.collection.slug, title: r.collection.title } : null,
+});
+
+const mapCollection = (r: RawCollection): Collection => ({
+  id: r.id,
+  slug: r.slug,
+  title: r.title,
+  description: r.description ?? '',
+  coverUrl: r.cover ?? null,
+  fileUrl: r.file ?? null,
+  publishedAt: r.published_at ?? null,
+  booksCount: r.books_count ?? 0,
 });
 
 const mapProject = (r: RawProject): Project => ({
@@ -178,16 +202,117 @@ export async function getBook(slug: string): Promise<Book | null> {
   return raw ? mapBook(raw) : null;
 }
 
+/* ------------------------------------------------------------------ */
+/* Сборники                                                            */
+/* ------------------------------------------------------------------ */
+
+export async function listCollections(): Promise<Collection[]> {
+  if (usingMockData) return MOCK_COLLECTIONS;
+  // бекенд без сборников ответит 404 — getAll вернёт пустой список
+  const raw = await getAll<RawCollection>('/library/collections/');
+  return raw.map(mapCollection);
+}
+
+export async function getCollection(
+  slug: string,
+): Promise<{ collection: Collection; books: Book[] } | null> {
+  if (usingMockData) return null;
+  const raw = await getEntity<RawCollection & { books?: RawBook[] }>(
+    `${API_BASE}/library/collections/${slug}/`,
+  );
+  if (!raw) return null;
+  const collection = mapCollection(raw);
+  // книги в ответе сборника своего сборника не указывают
+  const ref = { slug: collection.slug, title: collection.title };
+  const books = (raw.books ?? []).map((b) => ({ ...mapBook(b), collection: ref }));
+  return { collection, books };
+}
+
+/* ------------------------------------------------------------------ */
+/* Поиск по тексту                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Полнотекстовый поиск на бекенде, с морфологией: «Сибирь» находит
+ * «в Сибири». null — бекенд поиска не умеет или недоступен; тогда
+ * остаётся поиск по названиям прямо в браузере.
+ */
+async function searchJson<T>(path: string, q: string): Promise<T | null> {
+  if (usingMockData || !q.trim()) return null;
+  try {
+    const res = await fetch(`${API_BASE}${path}?q=${encodeURIComponent(q)}`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
+    });
+    return res.ok ? ((await res.json()) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Умеет ли бекенд искать: у старой версии API поиска нет (404). Пустой
+ * запрос ничего не ищет, только проверяет адрес. Ответ кешируется на час,
+ * чтобы страница из-за этой проверки не стала динамической.
+ */
+export async function canSearch(scope: 'library' | 'projects'): Promise<boolean> {
+  if (usingMockData) return false;
+  try {
+    const res = await fetch(`${API_BASE}/${scope}/search/?q=`, {
+      headers: { Accept: 'application/json' },
+      next: { revalidate: 3600 },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function searchLibrary(
+  q: string,
+): Promise<{ books: Found<Book>[]; collections: Found<Collection>[] } | null> {
+  type Raw = {
+    books: (RawBook & { headline: string })[];
+    collections: (RawCollection & { headline: string })[];
+  };
+  const raw = await searchJson<Raw>('/library/search/', q);
+  if (!raw) return null;
+  return {
+    books: raw.books.map((b) => ({ ...mapBook(b), headline: b.headline })),
+    collections: raw.collections.map((c) => ({ ...mapCollection(c), headline: c.headline })),
+  };
+}
+
+export async function searchPosts(q: string): Promise<PostHit[] | null> {
+  type Raw = {
+    id: number; title?: string; published_at?: string | null;
+    project: { slug: string; title: string }; headline: string;
+  }[];
+  const raw = await searchJson<Raw>('/projects/search/', q);
+  return raw
+    ? raw.map((p) => ({
+        id: p.id,
+        title: p.title || 'Без заголовка',
+        publishedAt: p.published_at ?? null,
+        project: { slug: p.project.slug, title: p.project.title },
+        headline: p.headline,
+      }))
+    : null;
+}
+
 /**
  * У книги в API нет ни глав, ни текста — только файл. Здесь он скачивается,
  * разбирается и режется на части. Форматы: txt, md, fb2, html читаются в
- * читалке; аудио уходит в плеер; pdf, epub, docx остаются на скачивание.
+ * читалке; аудио уходит в плеер; pdf листается разворотом; epub и docx
+ * остаются на скачивание.
  */
 export async function getBookContent(book: Book): Promise<BookContent> {
   if (!book.fileUrl) return { kind: 'none' };
 
   const ext = extFromUrl(book.fileUrl);
   if (AUDIO_EXT.includes(ext)) return { kind: 'audio', src: book.fileUrl };
+  if (ext === 'pdf') return { kind: 'pdf', src: book.fileUrl };
 
   if (usingMockData) {
     const raw = MOCK_BOOK_FILES[book.slug];

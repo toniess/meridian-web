@@ -1,4 +1,4 @@
-import type { Book, Post, Project } from './types';
+import type { Book, Collection, Post, Project } from './types';
 
 /**
  * Демо-данные ровно в тех же формах, что отдаёт API, — чтобы сайт
@@ -8,7 +8,7 @@ import type { Book, Post, Project } from './types';
  * ВНИМАНИЕ: тексты здесь мои, не авторские. Заменить перед публикацией.
  */
 
-export const MOCK_BOOKS: Book[] = [
+export const MOCK_BOOKS: Book[] = ([
   {
     id: 1,
     slug: 'yakutsky-plennik',
@@ -47,7 +47,10 @@ export const MOCK_BOOKS: Book[] = [
     fileUrl: 'demo://irtysh.fb2',
     publishedAt: '2025-06-10T00:00:00Z',
   },
-];
+] satisfies Omit<Book, 'collection'>[]).map((b) => ({ ...b, collection: null }));
+
+/** В демо-режиме сборников нет: все книги самостоятельные */
+export const MOCK_COLLECTIONS: Collection[] = [];
 
 /** Имитация файлов, которые в проде лежат по book.file */
 export const MOCK_BOOK_FILES: Record<string, string> = {

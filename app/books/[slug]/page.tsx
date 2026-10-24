@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import BookText from '@/components/BookText';
 import Cover from '@/components/Cover';
@@ -35,6 +36,11 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
         <div className="book-hero">
           <div><Cover book={book} /></div>
           <div>
+            {book.collection && (
+              <div className="from-collection">
+                Из сборника <Link href={`/collections/${book.collection.slug}`}>«{book.collection.title}»</Link>
+              </div>
+            )}
             <h1>{book.title}</h1>
 
             <div className="spec">
@@ -45,6 +51,7 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
               {content.kind === 'audio' && <span className="has-audio">аудиокнига</span>}
               {content.kind === 'text' && <ReadNote slug={book.slug} />}
               {content.kind === 'download' && <span>{content.ext.toUpperCase()}</span>}
+              {content.kind === 'pdf' && <span>PDF</span>}
             </div>
 
             {book.description && <p className="annot">{book.description}</p>}
@@ -69,6 +76,22 @@ export default async function BookPage({ params }: { params: Promise<{ slug: str
                       data-umami-event-format="аудио"
                     >
                       Скачать
+                    </a>
+                  </>
+                )}
+
+                {content.kind === 'pdf' && (
+                  <>
+                    <Link className="btn" href={`/books/${book.slug}/pdf`}>Листать</Link>
+                    <a
+                      className="btn ghost"
+                      href={content.src}
+                      download
+                      data-umami-event="Скачивание"
+                      data-umami-event-book={book.title}
+                      data-umami-event-format="pdf"
+                    >
+                      Скачать PDF
                     </a>
                   </>
                 )}

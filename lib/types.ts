@@ -13,6 +13,32 @@ export type Book = {
   /** Файл книги целиком: txt, md, fb2, html, pdf, epub, docx или аудио */
   fileUrl: string | null;
   publishedAt: string | null;
+  /** Сборник, в который входит рассказ; null — самостоятельное произведение */
+  collection: { slug: string; title: string } | null;
+};
+
+/** Сборник — издание из рассказов. Устроен как книга: обложка, описание, файл издания целиком */
+export type Collection = {
+  id: number;
+  slug: string;
+  title: string;
+  description: string;
+  coverUrl: string | null;
+  /** Издание целиком, обычно PDF; может отсутствовать */
+  fileUrl: string | null;
+  publishedAt: string | null;
+  booksCount: number;
+};
+
+/** Найденное поиском: headline — фрагмент текста, совпадения в <mark></mark> */
+export type Found<T> = T & { headline: string };
+
+export type PostHit = {
+  id: number;
+  title: string;
+  publishedAt: string | null;
+  project: { slug: string; title: string };
+  headline: string;
 };
 
 /** Абзац разобранного текста книги или поста */
@@ -34,7 +60,9 @@ export type BookPart = {
 export type BookContent =
   | { kind: 'text'; parts: BookPart[] }
   | { kind: 'audio'; src: string }
-  // reason: 'format' — формат нечитаемый (pdf, epub, docx);
+  // листается в читалке-развороте
+  | { kind: 'pdf'; src: string }
+  // reason: 'format' — формат нечитаемый (epub, docx);
   //         'unavailable' — формат читаемый, но файл не скачался
   | { kind: 'download'; src: string; ext: string; reason: 'format' | 'unavailable' }
   | { kind: 'none' };

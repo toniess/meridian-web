@@ -6,3 +6,6 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# копируется из pdfjs-dist перед сборкой (scripts/copy-pdfjs.mjs)
+public/pdfjs

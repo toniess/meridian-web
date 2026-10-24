@@ -13,8 +13,9 @@ const isDev = process.env.NODE_ENV !== 'production';
 const csp = [
   "default-src 'self'",
   // next dev использует eval для hot reload
-  // cloud.umami.is — трекер посещаемости, см. lib/analytics.ts
-  `script-src 'self' 'unsafe-inline' https://cloud.umami.is${isDev ? " 'unsafe-eval'" : ''}`,
+  // cloud.umami.is — трекер посещаемости, см. lib/analytics.ts.
+  // wasm-unsafe-eval — только WebAssembly, не eval: декодеры картинок в PDF (pdf.js)
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cloud.umami.is${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   // картинки и аудио к постам бекенд может отдавать с любого хоста

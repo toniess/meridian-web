@@ -259,6 +259,28 @@ section + section { padding-block-start: 0; }
 .search input:focus { outline: none; border-color: var(--accent-soft); }
 .empty button.inline { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
 
+/* библиотека: вкладки, фильтры, результаты поиска */
+.tabs { display: flex; gap: 6px; margin: -10px 0 18px; font-family: var(--ui); }
+.tabs button { padding: 8px 16px; border-radius: 100px; border: 1px solid var(--line2); color: var(--ink2); font-size: .92rem; }
+.tabs button span { color: var(--ink3); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tabs button[aria-selected="true"] span { color: inherit; opacity: .7; }
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; margin-bottom: 34px; font-family: var(--ui); font-size: .88rem; }
+.filters label { display: flex; align-items: center; gap: 8px; color: var(--ink3); }
+.filters select { font: inherit; color: var(--ink); background: var(--bg2); border: 1px solid var(--line2); border-radius: 8px; padding: 6px 28px 6px 10px; max-width: 16em; appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--ink3) 50%), linear-gradient(135deg, var(--ink3) 50%, transparent 50%); background-position: right 13px center, right 8px center; background-size: 5px 5px; background-repeat: no-repeat; }
+.filters select:focus { outline: none; border-color: var(--accent-soft); }
+.filters button.inline { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.search-note { margin: -18px 0 14px; color: var(--ink3); font-family: var(--ui); font-size: .85rem; min-height: 1.3em; }
+.toc-item.hit b { font-weight: 500; }
+.toc-item.hit small { margin-left: 10px; color: var(--ink3); font-family: var(--ui); font-size: .8rem; }
+.toc-item.hit .post-excerpt { margin-top: 6px; font-size: .92rem; }
+.headline mark { background: color-mix(in srgb, var(--accent) 28%, transparent); color: var(--ink); padding: 0 2px; border-radius: 2px; }
+
+.from-collection { font-family: var(--ui); font-size: .88rem; color: var(--ink3); margin-bottom: 10px; }
+.from-collection a { color: var(--ink2); text-decoration: none; border-bottom: 1px solid var(--line2); }
+.from-collection a:hover { color: var(--ink); }
+.toc-item .read-note { font-family: var(--ui); font-size: .8rem; white-space: nowrap; }
+
 .grid-books { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 34px 26px; }
 .book-card { text-decoration: none; display: block; }
 .book-card { perspective: 900px; }
@@ -467,6 +489,36 @@ section:has(> .book-hero) { padding-bottom: 40px; }
 .facts > div { display: grid; grid-template-columns: 130px 1fr; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .facts dt { color: var(--ink3); margin: 0; }
 .facts dd { margin: 0; }
+
+/* -------------------------- читалка PDF ---------------------------- */
+.flipbook { display: flex; flex-direction: column; min-height: calc(100vh - 62px); background: var(--bg); }
+.flipbook[data-fullscreen] { min-height: 100vh; }
+.flip-stage { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: 28px 18px 12px; }
+.flip-book { width: 100%; margin: 0 auto; }
+/* page-flip перезаписывает style страниц, поэтому оформление — только классом */
+.flip-page { background: #fff; overflow: hidden; }
+.flip-page canvas { display: block; }
+.flip-page[data-density="soft"] { box-shadow: inset 0 0 18px rgba(0,0,0,.06); }
+.flip-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font-family: var(--ui); font-size: .92rem; color: var(--ink3); text-align: center; padding: 20px; }
+.flip-status p { max-width: 26em; margin: 0; }
+.flip-progress { width: 220px; height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.flip-progress i { display: block; height: 100%; background: var(--accent); transition: width .2s ease; }
+.flip-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; padding: 12px 22px 18px; font-family: var(--ui); font-size: .88rem; }
+.flip-back { color: var(--ink2); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flip-back:hover { color: var(--ink); }
+.flip-nav { display: flex; align-items: center; gap: 12px; }
+.flip-nav .pmini { font-size: 1.1rem; line-height: 1; padding: 6px 14px; }
+.flip-nav .pmini:disabled { opacity: .35; }
+.flip-count { min-width: 7.5em; text-align: center; color: var(--ink2); font-variant-numeric: tabular-nums; }
+.flip-tools { display: flex; justify-content: flex-end; gap: 8px; }
+.flip-tools .pmini { text-decoration: none; }
+@media (max-width: 880px) {
+  .flip-stage { padding: 14px 8px 8px; }
+  .flip-bar { grid-template-columns: auto 1fr auto; padding: 10px 12px 14px; }
+  .flip-back { font-size: 0; }
+  .flip-back::before { content: '←'; font-size: .95rem; }
+  .flip-nav { justify-content: center; }
+}
 
 /* ------------------------------ плеер ------------------------------- */
 .player { position: fixed; left: 0; right: 0; bottom: 0; z-index: 70; background: var(--bg2); border-top: 1px solid var(--line2); transform: translateY(110%); transition: transform .32s cubic-bezier(.2,.7,.3,1); }
