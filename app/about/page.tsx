@@ -55,9 +55,9 @@ export default function AboutPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/images/author.webp"
-            alt="Игорь Глушков зимой на морозе, с заиндевевшей бородой"
-            width={760}
-            height={819}
+            alt="Портрет Игоря Глушкова"
+            width={640}
+            height={640}
           />
         </div>
       </div>
