@@ -17,6 +17,8 @@ concurrency:
 jobs:
   image:
     runs-on: ubuntu-latest
+    # зависшая отправка роняет прогон, а не висит до лимита в 6 часов
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -41,15 +43,17 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
-      - name: Вход в реестр Cloud.ru
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ vars.CLOUDRU_REGISTRY }}
-          username: ${{ secrets.CLOUDRU_KEY_ID }}
-          password: ${{ secrets.CLOUDRU_KEY_SECRET }}
-
-      # crane берёт логин из ~/.docker/config.json, который записал login-action
       - uses: imjasonh/setup-crane@v0.4
+
+      # С реестром работает только crane. Docker и buildkit берут токен
+      # POST-запросом к id.cloud.ru, а тот с раннеров GitHub через раз
+      # отвечает 502 — отправка зависала без единой строки в логе (до 2 ч).
+      # crane берёт токен GET-запросом, у него этой проблемы нет.
+      - name: Вход в реестр Cloud.ru
+        env:
+          KEY_ID: ${{ secrets.CLOUDRU_KEY_ID }}
+          KEY_SECRET: ${{ secrets.CLOUDRU_KEY_SECRET }}
+        run: echo "$KEY_SECRET" | crane auth login "${{ vars.CLOUDRU_REGISTRY }}" -u "$KEY_ID" --password-stdin
 
       # Образ под latest до публикации — это предыдущая версия,
       # её оставляем для отката. При первом запуске latest ещё нет.
@@ -60,24 +64,39 @@ jobs:
           echo "digest=$digest" >> $GITHUB_OUTPUT
           echo "Предыдущий образ: ${digest:-нет}"
 
-      - name: Сборка и публикация
-        id: build
+      # Поэтому образ собирается в архив, а не сразу в реестр
+      - name: Сборка
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
-          push: true
-          # latest — то, за чем следит Container App;
-          # sha-… остаётся в реестре, чтобы было на что откатиться
-          tags: |
-            ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:latest
-            ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:sha-${{ github.sha }}
+          tags: ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}:sha-${{ github.sha }}
+          outputs: type=docker,dest=/tmp/image.tar
           build-args: |
             NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL }}
             API_BASE=${{ vars.API_BASE }}
             MERIDIAN_PROJECT_SLUG=${{ vars.MERIDIAN_PROJECT_SLUG }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # latest — то, за чем следит Container App, его ставим последним:
+      # к этому моменту образ уже целиком в реестре.
+      # sha-… остаётся в реестре, чтобы было на что откатиться.
+      # Повтор докачивает только то, что не долетело в прошлый раз.
+      - name: Публикация
+        id: build
+        env:
+          IMAGE: ${{ vars.CLOUDRU_REGISTRY }}/${{ vars.IMAGE_NAME }}
+          TAG: sha-${{ github.sha }}
+        run: |
+          for attempt in 1 2 3; do
+            timeout 300 crane push /tmp/image.tar "$IMAGE:$TAG" && break
+            [ "$attempt" = 3 ] && { echo "::error::Образ не отправился за 3 попытки"; exit 1; }
+            echo "::warning::Попытка $attempt не удалась, повторяем"
+          done
+          crane tag "$IMAGE:$TAG" latest
+          # digest из реестра, а не от сборщика: по нему очистка решает, что оставить
+          echo "digest=$(crane digest "$IMAGE:$TAG")" >> $GITHUB_OUTPUT
 
       # В реестре остаются только текущий и предыдущий образ.
       # Удаляем по digest, поэтому вместе с образом уходят все его теги.
