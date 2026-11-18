@@ -13,16 +13,16 @@ const isDev = process.env.NODE_ENV !== 'production';
 const csp = [
   "default-src 'self'",
   // next dev использует eval для hot reload
-  // cloud.umami.is — трекер посещаемости, см. lib/analytics.ts.
+  // analytics.igorglushkov.ru — трекер посещаемости, см. lib/analytics.ts.
   // wasm-unsafe-eval — только WebAssembly, не eval: декодеры картинок в PDF (pdf.js)
-  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cloud.umami.is${isDev ? " 'unsafe-eval'" : ''}`,
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://analytics.igorglushkov.ru${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com",
   // картинки и аудио к постам бекенд может отдавать с любого хоста
   "img-src 'self' data: blob: https:",
   "media-src 'self' blob: https:",
   // сюда трекер Umami отправляет просмотры и события
-  "connect-src 'self' https://gateway.umami.is",
+  "connect-src 'self' https://analytics.igorglushkov.ru",
   // видео в постах — см. videoEmbed в lib/content.ts
   'frame-src https://www.youtube-nocookie.com https://rutube.ru https://vk.com https://dzen.ru https://zen.yandex.ru',
   "object-src 'none'",

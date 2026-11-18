@@ -1,13 +1,10 @@
 /**
- * Посещаемость считает Umami Cloud: без cookies и localStorage, IP не
- * хранится — поэтому баннер согласия не нужен. Просмотры страниц, в том
- * числе переходы внутри сайта, трекер учитывает сам; здесь — только события.
- *
- * Домены трекера разрешены в CSP (next.config.mjs): скрипт берётся с
- * cloud.umami.is, данные уходят на gateway.umami.is.
+ * Самостоятельная Umami на analytics.igorglushkov.ru.
+ * Просмотры и переходы учитывает трекер; здесь — пользовательские события.
+ * Адрес трекера также разрешён в CSP (next.config.mjs).
  */
 
-export const UMAMI_SRC = 'https://cloud.umami.is/script.js';
+export const UMAMI_SRC = 'https://analytics.igorglushkov.ru/script.js';
 export const UMAMI_WEBSITE_ID = 'acc6b504-24d4-493b-a33f-1e14441ddcff';
 
 declare global {
